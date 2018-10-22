@@ -1,0 +1,167 @@
+---
+title: "Statistical Inference Class Project"
+author: "Cathy Snell"
+date: "October 10, 2018"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width=12, fig.height=4)
+library(tidyverse)
+library(ggplot2)
+library(gridExtra)
+```
+
+## Part 2: Basic Inferential Data Analysis
+
+For part 2, we will analyze the ToothGrowth data in the R datasets package.  This data set shows the effect of Vitamin C on tooth growth in guinea pigs.
+
+### Exploritory Data Analysis
+
+First we load the ToothGrowth data and perform some basic exploratory data analyses.
+
+```{r, echo=FALSE}
+# load data
+data(ToothGrowth)
+str(ToothGrowth)
+table(ToothGrowth$dose, ToothGrowth$supp)
+```
+    
+We see that there are 60 observations of 3 variables.  There are 2 levels of supp and 3 distinct values of dose.  There are 10 observations for each combination of supp and dose.
+    
+### Compare Tooth Growth
+
+We will use confidence intervals and hypothesis testing (p-values) to compare tooth growth by supp and dose.  Let's start with a visual of the data.  We will do a hypothesis test to determine if there is significant difference between the two supp types at each dose level.
+
+```{r, echo=FALSE}
+ggplot(ToothGrowth, aes(supp, len)) + 
+  geom_boxplot(aes(colour=supp)) +
+    facet_grid(.~dose)
+```
+
+The null hypothesis (Ho) will be that mean(OJ) = mean(VC) for each dose.
+
+The alternative hypothesis (Ha) will be that mean(OJ) > mean(vC) for each dose.
+
+```{r, echo=FALSE}
+mean.OJ.0.5 <- mean(ToothGrowth%>%filter(supp=="OJ",dose=="0.5")%>%pull(len))
+mean.VC.0.5 <- mean(ToothGrowth%>%filter(supp=="VC",dose=="0.5")%>%pull(len))
+sd.OJ.0.5 <- sd(ToothGrowth%>%filter(supp=="OJ",dose=="0.5")%>%pull(len))
+sd.VC.0.5 <- sd(ToothGrowth%>%filter(supp=="VC",dose=="0.5")%>%pull(len))
+```
+
+Using the confidence interval calculation for comparing groups with unequal variances, means we will need to calculate the pooled standard error and the degrees of freedom.  We'll compare the manual calculation with the R t.test command.
+
+```{r, echo=FALSE}
+sp = sqrt((sd.OJ.0.5^2)/10 + (sd.VC.0.5^2)/10) # pooled standard error
+sx = (sd.OJ.0.5^2)/10
+sy = (sd.VC.0.5^2)/10
+df = (sx+sy)^2/(sx^2/9 + sy^2/9) # degrees of freedom
+
+paste("Manual Calculation Confidence Interval:",
+      (mean.OJ.0.5-mean.VC.0.5)+-1*qt(.95,df)*sp, # confidence interval for unequal variances
+      ", ",
+      (mean.OJ.0.5-mean.VC.0.5)+qt(.95,df)*sp)
+
+t.test(ToothGrowth%>%filter(supp=="OJ", dose=="0.5")%>%pull(len),
+       ToothGrowth%>%filter(supp=="VC", dose=="0.5")%>%pull(len),
+       paired=FALSE, var.equal=FALSE, alternative="greater", conf.level=.95) # t test for unequal variances
+```
+
+Let's quickly look at the confidence intervals for the other doses.
+
+```{r, echo=FALSE}
+paste("Dose = 1 Confidence Interval:",
+      t.test(ToothGrowth%>%filter(supp=="OJ", dose=="1")%>%pull(len),
+             ToothGrowth%>%filter(supp=="VC", dose=="1")%>%pull(len),
+             paired=FALSE, var.equal=FALSE, alternative="greater", conf.level=.95)[4],
+      " / p-value:",
+      t.test(ToothGrowth%>%filter(supp=="OJ", dose=="1")%>%pull(len),
+             ToothGrowth%>%filter(supp=="VC", dose=="1")%>%pull(len),
+             paired=FALSE, var.equal=FALSE, alternative="greater", conf.level=.95)[3])# t test for dose = 1
+
+paste("Dose = 2 Confidence Interval:",
+      t.test(ToothGrowth%>%filter(supp=="OJ", dose=="2")%>%pull(len),
+             ToothGrowth%>%filter(supp=="VC", dose=="2")%>%pull(len),
+             paired=FALSE, var.equal=FALSE, alternative="greater", conf.level=.95)[4],
+      " / p-value:",
+      t.test(ToothGrowth%>%filter(supp=="OJ", dose=="2")%>%pull(len),
+             ToothGrowth%>%filter(supp=="VC", dose=="2")%>%pull(len),
+             paired=FALSE, var.equal=FALSE, alternative="greater", conf.level=.95)[3])# t test for dose = 2
+```
+
+### Conclusion
+
+At dose = .5, there is a significant difference between OJ and VC.  We know this because the 95% confidence interval does not include 0 (meaning it's less than 5% likely to have the means be equal), and the p-value is .003, which is less than .05.
+
+At dose = 1, there is a significant difference between OJ and VC.  Again, the confidence interval does not include 0, and the p-value is .0005 (well under .05).
+
+At dose = 2, we can not reject the null hypothesis.  The confidence interval includes 0, and the p-value is > .05.
+
+These calculations are evidence of what we visually see in the plot of the differnces between OJ and VC.
+
+## Appendix
+
+### Code
+
+```{r eval=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(gridExtra)
+
+# Part 2: Basic Inferential Data Analysis
+
+## Exploritory Data Analysis
+
+    # load data
+data(ToothGrowth)
+str(ToothGrowth)
+table(ToothGrowth$dose, ToothGrowth$supp)
+
+## Compare Tooth Growth
+
+ggplot(ToothGrowth, aes(supp, len)) + 
+  geom_boxplot(aes(colour=supp)) +
+    facet_grid(.~dose)
+
+mean.OJ.0.5 <- mean(ToothGrowth%>%filter(supp=="OJ",dose=="0.5")%>%pull(len))
+mean.VC.0.5 <- mean(ToothGrowth%>%filter(supp=="VC",dose=="0.5")%>%pull(len))
+sd.OJ.0.5 <- sd(ToothGrowth%>%filter(supp=="OJ",dose=="0.5")%>%pull(len))
+sd.VC.0.5 <- sd(ToothGrowth%>%filter(supp=="VC",dose=="0.5")%>%pull(len))
+
+sp = sqrt((sd.OJ.0.5^2)/10 + (sd.VC.0.5^2)/10) # pooled standard error
+sx = (sd.OJ.0.5^2)/10
+sy = (sd.VC.0.5^2)/10
+df = (sx+sy)^2/(sx^2/9 + sy^2/9) # degrees of freedom
+
+paste("Manual Calculation Confidence Interval:",
+      (mean.OJ.0.5-mean.VC.0.5)+-1*qt(.95,df)*sp, # confidence interval for unequal variances
+      ", ",
+      (mean.OJ.0.5-mean.VC.0.5)+qt(.95,df)*sp)
+
+t.test(ToothGrowth%>%filter(supp=="OJ", dose=="0.5")%>%pull(len),
+       ToothGrowth%>%filter(supp=="VC", dose=="0.5")%>%pull(len),
+       paired=FALSE, var.equal=FALSE, alternative="greater", conf.level=.95) # t test for unequal variances
+
+paste("Dose = 1 Confidence Interval:",
+      t.test(ToothGrowth%>%filter(supp=="OJ", dose=="1")%>%pull(len),
+             ToothGrowth%>%filter(supp=="VC", dose=="1")%>%pull(len),
+             paired=FALSE, var.equal=FALSE, alternative="greater", conf.level=.95)[4],
+      " / p-value:",
+      t.test(ToothGrowth%>%filter(supp=="OJ", dose=="1")%>%pull(len),
+             ToothGrowth%>%filter(supp=="VC", dose=="1")%>%pull(len),
+             paired=FALSE, var.equal=FALSE, alternative="greater", conf.level=.95)[3])# t test for dose = 1
+
+paste("Dose = 2 Confidence Interval:",
+      t.test(ToothGrowth%>%filter(supp=="OJ", dose=="2")%>%pull(len),
+             ToothGrowth%>%filter(supp=="VC", dose=="2")%>%pull(len),
+             paired=FALSE, var.equal=FALSE, alternative="greater", conf.level=.95)[4],
+      " / p-value:",
+      t.test(ToothGrowth%>%filter(supp=="OJ", dose=="2")%>%pull(len),
+             ToothGrowth%>%filter(supp=="VC", dose=="2")%>%pull(len),
+             paired=FALSE, var.equal=FALSE, alternative="greater", conf.level=.95)[3])# t test for dose = 2
+
+## Conclusion
+```
